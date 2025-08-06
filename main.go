@@ -41,6 +41,7 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 
+
 func main() {
 	const filepathRoot = "."
 	const port = "8080"
@@ -49,8 +50,11 @@ func main() {
 	mux := http.NewServeMux()
 	
 	mux.Handle("/app/", http.StripPrefix("/app", apiCfg.middlewareMetricsInc(http.FileServer(http.Dir(filepathRoot)))))
-	mux.HandleFunc("GET /admin/metrics", apiCfg.hitsHandler)
+
 	mux.HandleFunc("GET /api/healthz", healthzHandler)
+	mux.HandleFunc("POST /api/validate_chirp", validateChirpHandler)
+
+	mux.HandleFunc("GET /admin/metrics", apiCfg.hitsHandler)
 	mux.HandleFunc("POST /admin/reset", apiCfg.resetHitsHandler)
 	
 	server := &http.Server {

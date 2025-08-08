@@ -66,3 +66,12 @@ func (cfg *apiConfig)chirpHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	respondWithJSON(w, http.StatusCreated, mapChirp(chirp))
 }
+
+func (cfg *apiConfig)getChirpsHandler(w http.ResponseWriter, r *http.Request) {
+	chirps, err := cfg.db.GetChirps(r.Context()) 
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to get chirps", err)
+		return
+	}
+	respondWithArray(w, http.StatusOK, chirps)
+}

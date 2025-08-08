@@ -75,3 +75,19 @@ func (cfg *apiConfig)getChirpsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	respondWithArray(w, http.StatusOK, chirps)
 }
+
+func (cfg *apiConfig)getChirpHandler(w http.ResponseWriter, r *http.Request) {
+	path := r.PathValue("chirpID")
+	chirpID, err := uuid.Parse(path)
+	if err != nil {
+		respondWithError(w, 404, "Failed to get chirp", err)
+		return
+	}
+	chirp, err := cfg.db.GetChirpByID(r.Context(), chirpID)
+	if err != nil {
+		respondWithError(w, 404, "Failed to get chirp", err)
+		return
+	}
+	mappedChirp := mapChirp(chirp)
+	respondWithJSON(w, http.StatusOK, mappedChirp)
+}

@@ -5,12 +5,14 @@ import(
 	"encoding/json"
 	"github.com/molkobahn/Chirpy/internal/auth"
 	"log"
+	"time"
 )
 
 func (cfg *apiConfig) loginHandler(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Email string `json:"email"`
 		Password string `json:"password"`
+		ExpiresInSeconds int `json:"expires_in_seconds"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -31,5 +33,18 @@ func (cfg *apiConfig) loginHandler(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, 401, "Incorrect password", err)
 		return
 	}
-	respondWithJSON(w, http.StatusOK, mapUser(user))
+	var expiresIn time.Duration
+	if params.ExpiresInSeconds == 0 || params.ExpiresInSeconds > 3600 {
+		expiresIn = time.Duration(3600) * time.Second
+	} else {
+		expiresIn = time.Duration(params.ExpiresInSeconds) * time.Second
+	}
+
+	token, err := auth.MakeJWT(user.ID, cfg.secret, expiresIn)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to create token: %v", err)
+	}
+	responseUser := mapUser(user)
+	responseUser.Token = token
+	respondWithJSON(w, http.StatusOK, responseUser)
 }

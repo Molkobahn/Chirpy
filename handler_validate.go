@@ -6,6 +6,8 @@ import (
 	"strings"
 	"github.com/google/uuid"
 	"github.com/molkobahn/Chirpy/internal/database"
+	"github.com/molkobahn/Chirpy/internal/auth"
+	"log"
 )
 
 type cleanedParameters struct {
@@ -58,7 +60,22 @@ func validateChirp(w http.ResponseWriter, r *http.Request) database.CreateChirpP
 }
 
 func (cfg *apiConfig)chirpHandler(w http.ResponseWriter, r *http.Request) {
+	token, err := auth.GetBearerToken(r.Header) 
+	if err != nil {
+		respondWithError(w, 401, "Couldn't get authentication token: %v", err)
+		return
+	}
+	authUser, err := auth.ValidateJWT(token, cfg.secret)
+	if err != nil {
+		respondWithError(w, 401, "Couldn't validate token: %v", err)
+		return
+	}	
 	arg := validateChirp(w, r)
+	arg.UserID = authUser
+	if arg.UserID != authUser {
+		respondWithError(w, 401, "User not authorized", nil)
+		return
+	}
 	chirp, err := cfg.db.CreateChirp(r.Context(), arg)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to create chirp", err)

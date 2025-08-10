@@ -16,6 +16,7 @@ type apiConfig struct {
 	fileserverHits	atomic.Int32
 	db	*database.Queries
 	platform string
+	secret string
 }
 
 func healthzHandler(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +44,9 @@ func main() {
 	apiCfg.db = dbQueries
 	platform := os.Getenv("PLATFORM")
 	apiCfg.platform = platform 
+	secret := os.Getenv("SECRET")
+	apiCfg.secret = secret
+
 	mux := http.NewServeMux()
 	
 	mux.Handle("/app/", http.StripPrefix("/app", apiCfg.middlewareMetricsInc(http.FileServer(http.Dir(filepathRoot)))))

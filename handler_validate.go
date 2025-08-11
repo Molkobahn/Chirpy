@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/molkobahn/Chirpy/internal/database"
 	"github.com/molkobahn/Chirpy/internal/auth"
-	"log"
 )
 
 type cleanedParameters struct {

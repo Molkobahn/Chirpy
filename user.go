@@ -55,3 +55,43 @@ func (cfg *apiConfig)createUserHandler(w http.ResponseWriter, r *http.Request) {
 	newUser := mapUser(user)
 	respondWithJSON(w, http.StatusCreated, newUser)
 }
+
+func (cfg *apiConfig) updateUserHandler(w http.ResponseWriter, r *http.Request) {
+	authToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, 401, "No authentication token found", err)
+		return
+	}
+	userID, err := auth.ValidateJWT(authToken, cfg.secret)
+	if err != nil {
+		respondWithError(w, 401, "Failed to validate token", err)
+		return
+	}
+	type parameters struct {
+		Email string `json:"email"`
+		Password string `json:"password"`
+	}
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	err = decoder.Decode(&params)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		return
+	}
+	hashedPassword, err := auth.HashPassword(params.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to hash password", err)
+		return
+	}
+	arg := database.UpdateUserParams{
+		Email:	params.Email,
+		HashedPasswords: hashedPassword,
+		ID: userID,
+	}
+	updatedUser, err := cfg.db.UpdateUser(r.Context(), arg)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to update User", err)
+		return
+	}
+	respondWithJSON(w, 200, mapUser(updatedUser))
+}

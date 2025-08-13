@@ -17,6 +17,7 @@ type apiConfig struct {
 	db	*database.Queries
 	platform string
 	secret string
+	polka_key string
 }
 
 func healthzHandler(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +34,6 @@ func main() {
 	godotenv.Load()
 	// Setup database connection
 	dbURL := os.Getenv("DB_URL")
-	log.Printf("The URL: %v", dbURL)
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatalf("Failed to open Database: %v", err)
@@ -46,6 +46,9 @@ func main() {
 	apiCfg.platform = platform 
 	secret := os.Getenv("SECRET")
 	apiCfg.secret = secret
+	polka_key := os.Getenv("POLKA_KEY")
+	apiCfg.polka_key = polka_key
+
 
 	mux := http.NewServeMux()
 	
@@ -60,6 +63,7 @@ func main() {
 	mux.HandleFunc("POST /api/login", apiCfg.loginHandler)
 	mux.HandleFunc("POST /api/refresh", apiCfg.refreshHandler)
 	mux.HandleFunc("POST /api/revoke", apiCfg.revokeHandler)
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.upgradeUserHandler)
 
 	mux.HandleFunc("PUT /api/users", apiCfg.updateUserHandler)
 

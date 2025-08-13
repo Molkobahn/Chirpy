@@ -4,7 +4,6 @@ import(
 	"net/http"
 	"encoding/json"
 	"github.com/molkobahn/Chirpy/internal/auth"
-	"log"
 	"time"
 	"github.com/molkobahn/Chirpy/internal/database"
 )
@@ -27,7 +26,6 @@ func (cfg *apiConfig) loginHandler(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, 401, "Incorrect email", err)
 		return
 	}
-	log.Printf("The user: %v", user)
 	err = auth.CheckPasswordHash(params.Password, user.HashedPasswords)
 	if err != nil {
 		respondWithError(w, 401, "Incorrect password", err)

@@ -10,12 +10,13 @@ import (
 )
 
 type User struct {
-	ID			uuid.UUID	`json:"id"`
-	CreatedAt	time.Time	`json:"created_at"`
-	UpdatedAt	time.Time	`json:"updated_at"`
-	Email		string		`json:"email"`
-	Token		string		`json:"token"`
-	RefreshToken	string	`json:"refresh_token"`
+	ID				uuid.UUID	`json:"id"`
+	CreatedAt		time.Time	`json:"created_at"`
+	UpdatedAt		time.Time	`json:"updated_at"`
+	Email			string		`json:"email"`
+	Token			string		`json:"token"`
+	RefreshToken	string		`json:"refresh_token"`
+	IsChirpyRed		bool		`json:"is_chirpy_red"`
 }
 
 func mapUser(user database.User) User {
@@ -24,6 +25,7 @@ func mapUser(user database.User) User {
 		CreatedAt:	user.CreatedAt,
 		UpdatedAt:	user.UpdatedAt,
 		Email:	user.Email,
+		IsChirpyRed: user.IsChirpyRed.Bool,
 	}
 }
 
@@ -94,4 +96,43 @@ func (cfg *apiConfig) updateUserHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	respondWithJSON(w, 200, mapUser(updatedUser))
+}
+
+func (cfg *apiConfig) upgradeUserHandler(w http.ResponseWriter, r *http.Request) {
+	authKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		respondWithError(w, 401, "No authorization key found", err)
+		return
+	}
+	if authKey != cfg.polka_key {
+		respondWithError(w, 401, "Authorization key doesn't match", err)
+		return 
+	}
+	type parameters struct {
+		Event string `json:"event"`
+		Data struct {
+			UserID string `json:"user_id"`
+		} `json:"data"`
+	}
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	err = decoder.Decode(&params)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+	}
+	if params.Event != "user.upgraded" {
+		w.WriteHeader(204)
+		return
+	}
+	userID, err := uuid.Parse(params.Data.UserID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to parse user ID", err)
+		return
+	}
+	err = cfg.db.UpgradeUser(r.Context(), userID)
+	if err != nil {
+		respondWithError(w, 404, "Couldn't upgrade user", err)
+		return
+	}
+	w.WriteHeader(204)
 }

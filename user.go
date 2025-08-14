@@ -21,11 +21,11 @@ type User struct {
 
 func mapUser(user database.User) User {
 	return User{
-		ID:	user.ID,
-		CreatedAt:	user.CreatedAt,
-		UpdatedAt:	user.UpdatedAt,
-		Email:	user.Email,
-		IsChirpyRed: user.IsChirpyRed.Bool,
+		ID:				user.ID,
+		CreatedAt:		user.CreatedAt,
+		UpdatedAt:		user.UpdatedAt,
+		Email:			user.Email,
+		IsChirpyRed: 	user.IsChirpyRed,
 	}
 }
 

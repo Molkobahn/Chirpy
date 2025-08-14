@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/molkobahn/Chirpy/internal/database"
 	"github.com/molkobahn/Chirpy/internal/auth"
+	"sort"
 )
 
 type cleanedParameters struct {
@@ -84,13 +85,34 @@ func (cfg *apiConfig)chirpHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *apiConfig)getChirpsHandler(w http.ResponseWriter, r *http.Request) {
-	chirps, err := cfg.db.GetChirps(r.Context()) 
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to get chirps", err)
-		return
+	authorID := r.URL.Query().Get("author_id")
+	var chirps []database.Chirp
+	var err error
+	if authorID != "" {
+		userID, err := uuid.Parse(authorID)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to parse user ID", err)
+			return
+		}
+		chirps, err = cfg.db.GetChirpsByAuthor(r.Context(), userID)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to get chirps", err)
+			return
+		}
+	} else {
+		chirps, err = cfg.db.GetChirps(r.Context()) 
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to get chirps", err)
+			return
+		}
+	}
+	sortParam := r.URL.Query().Get("sort")
+	if sortParam == "desc" {
+		sort.Slice(chirps, func(i, j int) bool { return chirps[j].CreatedAt.Before(chirps[i].CreatedAt) })
 	}
 	respondWithArray(w, http.StatusOK, chirps)
 }
+
 
 func (cfg *apiConfig)getChirpHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.PathValue("chirpID")
@@ -107,6 +129,7 @@ func (cfg *apiConfig)getChirpHandler(w http.ResponseWriter, r *http.Request) {
 	mappedChirp := mapChirp(chirp)
 	respondWithJSON(w, http.StatusOK, mappedChirp)
 }
+
 
 func (cfg *apiConfig)deleteChirpHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.PathValue("chirpID")
